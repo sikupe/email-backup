@@ -18,8 +18,14 @@ type Downloader struct {
 func generateFileName(m *imap.Message) string {
 	date := m.InternalDate.String()
 
-	sender := m.Envelope.From[0].MailboxName + "@" + m.Envelope.From[0].HostName
+	sender := "Unknown"
+	if len(m.Envelope.From) > 0 {
+		sender = m.Envelope.From[0].MailboxName + "@" + m.Envelope.From[0].HostName
+	}
 	subject := url.PathEscape(m.Envelope.Subject)
+	if len(subject) > 100 {
+		subject = subject[:100]
+	}
 	messageId := m.Uid
 
 	return fmt.Sprintf("%s－%s－%s－%d.eml", date, sender, subject, messageId)
@@ -107,7 +113,9 @@ func (d Downloader) ListFolders(path string) []string {
 }
 
 func (d Downloader) Logout() {
-	d.client.Logout()
+	//if err := d.client.Logout(); err != nil {
+	//	log.Fatal(err)
+	//}
 }
 
 func CreateDownloader(server, user, password string) *Downloader {
