@@ -2,7 +2,10 @@
 A small tool for administrate and backup (locally) your email account
 
 ## Installation
-You can install the tooling via `go install github.com/sikupe/email-backup`.
+You can install the tooling via (go must be installed):
+1. `git clone git@github.com:sikupe/email-backup.git`
+2. `cd email-backup`
+3. `go install`
 
 ## Functionality
 ### Backup
