@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"sort"
 )
 
 func formatBytes(bytes uint64) string {
@@ -96,7 +97,10 @@ func main() {
 					&cli.StringFlag{
 						Name:  "path",
 						Value: "",
-						Usage: "Path to backup",
+						Usage: "Path to measure size",
+					},
+					&cli.BoolFlag{
+						Name: "sort-by-size",
 					},
 				},
 				Action: func(context *cli.Context) error {
@@ -104,6 +108,7 @@ func main() {
 					user := context.String("user")
 					password := context.String("password")
 					path := context.String("path")
+					sortBySize := context.Bool("sort-by-size")
 
 					paths := []string{}
 
@@ -123,9 +128,26 @@ func main() {
 					// Dowloading messages
 					sizes := d.Sizes(paths)
 
-					for folder, bytes := range sizes {
-						fmt.Printf("%s: %s\n", folder, formatBytes(bytes))
+					total := uint64(0)
+
+					keys := make([]string, 0, len(sizes))
+
+					for key := range sizes {
+						keys = append(keys, key)
 					}
+
+					if sortBySize {
+						sort.SliceStable(keys, func(i, j int) bool {
+							return sizes[keys[i]] > sizes[keys[j]]
+						})
+					}
+
+					for _, folder := range keys {
+						bytes := sizes[folder]
+						fmt.Printf("%s: %s\n", folder, formatBytes(bytes))
+						total += bytes
+					}
+					fmt.Printf("Total space used: %s\n", formatBytes(total))
 
 					log.Println("Done!")
 
