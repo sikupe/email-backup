@@ -6,6 +6,7 @@ import (
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 )
@@ -18,7 +19,7 @@ func generateFileName(m *imap.Message) string {
 	date := m.InternalDate.String()
 
 	sender := m.Envelope.From[0].MailboxName + "@" + m.Envelope.From[0].HostName
-	subject := m.Envelope.Subject
+	subject := url.PathEscape(m.Envelope.Subject)
 	messageId := m.Uid
 
 	return fmt.Sprintf("%s－%s－%s－%d.eml", date, sender, subject, messageId)
@@ -36,7 +37,7 @@ func (d Downloader) Download(paths []string, output string) error {
 		}
 
 		seqset := new(imap.SeqSet)
-		seqset.AddRange(mbox.Messages, mbox.Messages)
+		seqset.AddRange(uint32(1), mbox.Messages)
 
 		messages := make(chan *imap.Message, 10)
 		done := make(chan error, 1)
@@ -68,6 +69,7 @@ func (d Downloader) Download(paths []string, output string) error {
 					log.Fatal(err)
 				}
 			}
+			log.Printf("Downloaded %s\n", outputFilePath)
 		}
 
 		if err := <-done; err != nil {
@@ -78,10 +80,16 @@ func (d Downloader) Download(paths []string, output string) error {
 }
 
 func (d Downloader) ListFolders(path string) []string {
+	name := ""
+	if path == "" {
+		name = "*"
+	}
+
 	mailboxes := make(chan *imap.MailboxInfo, 10)
 	done := make(chan error, 1)
+
 	go func() {
-		done <- d.client.List(path, "", mailboxes)
+		done <- d.client.List(path, name, mailboxes)
 	}()
 
 	paths := []string{}
