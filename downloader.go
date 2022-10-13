@@ -6,10 +6,13 @@ import (
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 	"log"
+	"math"
 	"net/url"
 	"os"
 	"path/filepath"
 )
+
+const maxFileNameLength = 150
 
 type Downloader struct {
 	client *client.Client
@@ -23,10 +26,16 @@ func generateFileName(m *imap.Message) string {
 		sender = m.Envelope.From[0].MailboxName + "@" + m.Envelope.From[0].HostName
 	}
 	subject := url.PathEscape(m.Envelope.Subject)
-	if len(subject) > 100 {
-		subject = subject[:100]
-	}
 	messageId := m.Uid
+
+	fileNameLength := len(date) + len(sender) + int(math.Floor(math.Log10(float64(messageId)))) + 1 + len(subject) + 3*3 + 4
+
+	trimLength := fileNameLength - maxFileNameLength
+	trimmedLength := len(subject) - trimLength
+
+	if fileNameLength > maxFileNameLength {
+		subject = subject[:trimmedLength]
+	}
 
 	return fmt.Sprintf("%s－%s－%s－%d.eml", date, sender, subject, messageId)
 }
