@@ -31,6 +31,36 @@ func generateFileName(m *imap.Message) string {
 	return fmt.Sprintf("%s－%s－%s－%d.eml", date, sender, subject, messageId)
 }
 
+func (d Downloader) Sizes(paths []string) map[string]uint64 {
+	result := make(map[string]uint64)
+	for _, p := range paths {
+		mbox, err := d.client.Select(p, false)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		seqset := new(imap.SeqSet)
+		seqset.AddRange(uint32(1), mbox.Messages)
+
+		messages := make(chan *imap.Message, 10)
+		done := make(chan error, 1)
+		go func() {
+			done <- d.client.Fetch(seqset, []imap.FetchItem{imap.FetchFast}, messages)
+		}()
+
+		folderSize := uint64(0)
+		for m := range messages {
+			folderSize += uint64(m.Size)
+		}
+
+		if err := <-done; err != nil {
+			log.Fatal(err)
+		}
+		result[p] = folderSize
+	}
+	return result
+}
+
 func (d Downloader) Download(paths []string, output string) error {
 	for _, p := range paths {
 		outputDir := filepath.Join(output, p)
